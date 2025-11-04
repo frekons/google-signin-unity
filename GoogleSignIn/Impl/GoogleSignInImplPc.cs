@@ -1,16 +1,52 @@
-#if UNITY_EDITOR || UNITY_STANDALONE
+﻿#if UNITY_EDITOR || UNITY_STANDALONE
+using Newtonsoft.Json.Linq;
 using System;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Net;
 using System.Net.NetworkInformation;
+using System.Security.Cryptography;
+using System.Text;
+using System.Threading.Tasks;
 using UnityEngine;
-using Newtonsoft.Json.Linq;
 
 namespace Google.Impl
 {
+
+    public static class PkceUtil
+    {
+        // Rastgele 64 bayt üretip base64url ile encode eder
+        public static string GenerateCodeVerifier()
+        {
+            var randomBytes = new byte[64];
+            using (var rng = RandomNumberGenerator.Create())
+                rng.GetBytes(randomBytes);
+
+            return Base64UrlEncode(randomBytes);
+        }
+
+        // code_challenge oluşturur (SHA256 + Base64URL)
+        public static string ComputeCodeChallenge(string codeVerifier)
+        {
+            using (var sha = SHA256.Create())
+            {
+                var bytes = Encoding.ASCII.GetBytes(codeVerifier);
+                var hash = sha.ComputeHash(bytes);
+                return Base64UrlEncode(hash);
+            }
+        }
+
+        // Normal Base64 → URL-safe Base64 (PKCE standardına göre)
+        private static string Base64UrlEncode(byte[] input)
+        {
+            var s = Convert.ToBase64String(input);   // standart Base64
+            s = s.Split('=')[0];                     // '=' padding’leri kaldır
+            s = s.Replace('+', '-');                 // '+' → '-'
+            s = s.Replace('/', '_');                 // '/' → '_'
+            return s;
+        }
+    }
+
     internal class GoogleSignInImplPc : ISignInImpl, FutureAPIImpl<GoogleSignInUser>
     {
         GoogleSignInConfiguration configuration;
@@ -21,9 +57,13 @@ namespace Google.Impl
 
         public GoogleSignInUser Result { get; private set; }
 
+        protected string codeVerifier, codeChallenge;
+
         public GoogleSignInImplPc(GoogleSignInConfiguration configuration)
         {
             this.configuration = configuration;
+            codeVerifier = PkceUtil.GenerateCodeVerifier();
+            codeChallenge = PkceUtil.ComputeCodeChallenge(codeVerifier);
         }
 
         public void Disconnect()
@@ -101,7 +141,7 @@ namespace Google.Impl
 
             try
             {
-                var openURL = "https://accounts.google.com/o/oauth2/v2/auth?" + Uri.EscapeUriString("scope=openid email profile&response_type=code&redirect_uri=" + httpListener.Prefixes.FirstOrDefault() + "&client_id=" + configuration.DesktopClientId);
+                var openURL = "https://accounts.google.com/o/oauth2/v2/auth?" + Uri.EscapeUriString("scope=openid email profile&response_type=code&redirect_uri=" + httpListener.Prefixes.FirstOrDefault() + "&client_id=" + configuration.DesktopClientId + $"&code_challenge={codeChallenge}&code_challenge_method=S256");
                 Debug.Log($"[GoogleSignInImplPc] Opening URL: {openURL}");
                 Application.OpenURL(openURL);
             }
@@ -147,7 +187,7 @@ namespace Google.Impl
                     context.Response.OutputStream.Write(Encoding.UTF8.GetBytes("Authentication successful! You can close this page."));
                     context.Response.Close();
 
-                    var tokenRequestBody = $"code={code}&client_id={configuration.DesktopClientId}&client_secret={configuration.ClientSecret}&redirect_uri={httpListener.Prefixes.FirstOrDefault()}&grant_type=authorization_code";
+                    var tokenRequestBody = $"code={code}&client_id={configuration.DesktopClientId}&code_verifier={codeVerifier}&redirect_uri={httpListener.Prefixes.FirstOrDefault()}&grant_type=authorization_code";
 
                     var jobj = await HttpWebRequest.CreateHttp("https://www.googleapis.com/oauth2/v4/token")
                         .Post("application/x-www-form-urlencoded", tokenRequestBody)
