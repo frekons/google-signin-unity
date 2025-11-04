@@ -197,7 +197,7 @@ namespace Google.Impl
                     //    .ContinueWith((t) => JObject.Parse(t.Result), taskScheduler);
 
                     //var accessToken = (string)jobj.GetValue("access_token");
-                    //var user = new GoogleSignInUser();
+                    var user = new GoogleSignInUser();
 
                     //if (configuration.RequestAuthCode)
                     //    user.AuthCode = code;
@@ -226,9 +226,10 @@ namespace Google.Impl
                     //}
 
                     OutCode = code;
-                    //Result = user;
+                    user.OutCode = OutCode;
+                    Result = user;
                     Status = GoogleSignInStatusCode.SUCCESS;
-                    //Debug.Log($"[GoogleSignInImplPc] Sign-in successful for user: {user.DisplayName}");
+                    Debug.Log($"[GoogleSignInImplPc] Sign-in successful for user: {user.DisplayName}");
                     Debug.Log($"[GoogleSignInImplPc] Sign-in successful");
                 }
                 catch (Exception e)

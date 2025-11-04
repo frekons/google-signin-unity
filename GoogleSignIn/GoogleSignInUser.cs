@@ -41,8 +41,14 @@ namespace Google {
       internal set;
     }
 
-    /// <summary> Display Name.</summary>
-    public string DisplayName {
+        public string OutCode
+        {
+            get;
+            internal set;
+        }
+
+        /// <summary> Display Name.</summary>
+        public string DisplayName {
       get;
       internal set;
     }
