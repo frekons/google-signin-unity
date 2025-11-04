@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.NetworkInformation;
+using System.Reflection.Emit;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
@@ -56,6 +57,8 @@ namespace Google.Impl
         public GoogleSignInStatusCode Status { get; private set; }
 
         public GoogleSignInUser Result { get; private set; }
+
+        public string OutCode { get; private set; }
 
         protected string codeVerifier, codeChallenge;
 
@@ -178,53 +181,55 @@ namespace Google.Impl
                         }
 
                         context.Response.StatusCode = 400;
-                        context.Response.OutputStream.Write(Encoding.UTF8.GetBytes("Authentication failed. You can close this page."));
+                        context.Response.OutputStream.Write(Encoding.UTF8.GetBytes("Authentication failed. You can close this page and go back to app."));
                         context.Response.Close();
                         return;
                     }
 
                     context.Response.StatusCode = 200;
-                    context.Response.OutputStream.Write(Encoding.UTF8.GetBytes("Authentication successful! You can close this page."));
+                    context.Response.OutputStream.Write(Encoding.UTF8.GetBytes("Authentication successful! You can close this page and go back to app."));
                     context.Response.Close();
 
-                    var tokenRequestBody = $"code={code}&client_id={configuration.DesktopClientId}&code_verifier={codeVerifier}&redirect_uri={httpListener.Prefixes.FirstOrDefault()}&grant_type=authorization_code";
+                    //var tokenRequestBody = $"code={code}&client_id={configuration.DesktopClientId}&code_verifier={codeVerifier}&redirect_uri={httpListener.Prefixes.FirstOrDefault()}&grant_type=authorization_code";
 
-                    var jobj = await HttpWebRequest.CreateHttp("https://www.googleapis.com/oauth2/v4/token")
-                        .Post("application/x-www-form-urlencoded", tokenRequestBody)
-                        .ContinueWith((t) => JObject.Parse(t.Result), taskScheduler);
+                    //var jobj = await HttpWebRequest.CreateHttp("https://www.googleapis.com/oauth2/v4/token")
+                    //    .Post("application/x-www-form-urlencoded", tokenRequestBody)
+                    //    .ContinueWith((t) => JObject.Parse(t.Result), taskScheduler);
 
-                    var accessToken = (string)jobj.GetValue("access_token");
-                    var user = new GoogleSignInUser();
+                    //var accessToken = (string)jobj.GetValue("access_token");
+                    //var user = new GoogleSignInUser();
 
-                    if (configuration.RequestAuthCode)
-                        user.AuthCode = code;
+                    //if (configuration.RequestAuthCode)
+                    //    user.AuthCode = code;
 
-                    if (configuration.RequestIdToken)
-                        user.IdToken = (string)jobj.GetValue("id_token");
+                    //if (configuration.RequestIdToken)
+                    //    user.IdToken = (string)jobj.GetValue("id_token");
 
-                    var request = HttpWebRequest.CreateHttp("https://openidconnect.googleapis.com/v1/userinfo");
-                    request.Method = "GET";
-                    request.Headers.Add("Authorization", "Bearer " + accessToken);
+                    //var request = HttpWebRequest.CreateHttp("https://openidconnect.googleapis.com/v1/userinfo");
+                    //request.Method = "GET";
+                    //request.Headers.Add("Authorization", "Bearer " + accessToken);
 
-                    var data = await request.GetResponseAsStringAsync().ContinueWith((t) => t.Result, taskScheduler);
-                    var userInfo = JObject.Parse(data);
+                    //var data = await request.GetResponseAsStringAsync().ContinueWith((t) => t.Result, taskScheduler);
+                    //var userInfo = JObject.Parse(data);
 
-                    user.UserId = (string)userInfo.GetValue("sub");
-                    user.DisplayName = (string)userInfo.GetValue("name");
+                    //user.UserId = (string)userInfo.GetValue("sub");
+                    //user.DisplayName = (string)userInfo.GetValue("name");
 
-                    if (configuration.RequestEmail)
-                        user.Email = (string)userInfo.GetValue("email");
+                    //if (configuration.RequestEmail)
+                    //    user.Email = (string)userInfo.GetValue("email");
 
-                    if (configuration.RequestProfile)
-                    {
-                        user.GivenName = (string)userInfo.GetValue("given_name");
-                        user.FamilyName = (string)userInfo.GetValue("family_name");
-                        user.ImageUrl = Uri.TryCreate((string)userInfo.GetValue("picture"), UriKind.Absolute, out var url) ? url : null;
-                    }
+                    //if (configuration.RequestProfile)
+                    //{
+                    //    user.GivenName = (string)userInfo.GetValue("given_name");
+                    //    user.FamilyName = (string)userInfo.GetValue("family_name");
+                    //    user.ImageUrl = Uri.TryCreate((string)userInfo.GetValue("picture"), UriKind.Absolute, out var url) ? url : null;
+                    //}
 
-                    Result = user;
+                    OutCode = code;
+                    //Result = user;
                     Status = GoogleSignInStatusCode.SUCCESS;
-                    Debug.Log($"[GoogleSignInImplPc] Sign-in successful for user: {user.DisplayName}");
+                    //Debug.Log($"[GoogleSignInImplPc] Sign-in successful for user: {user.DisplayName}");
+                    Debug.Log($"[GoogleSignInImplPc] Sign-in successful");
                 }
                 catch (Exception e)
                 {
