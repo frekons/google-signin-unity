@@ -59,6 +59,7 @@ namespace Google.Impl
         public GoogleSignInUser Result { get; private set; }
 
         protected string codeVerifier, codeChallenge;
+        protected string state;
 
         public GoogleSignInImplPc(GoogleSignInConfiguration configuration)
         {
@@ -144,7 +145,9 @@ namespace Google.Impl
 
             try
             {
-                var openURL = "https://accounts.google.com/o/oauth2/v2/auth?" + Uri.EscapeUriString("scope=openid email profile&response_type=code&redirect_uri=" + redirectUri + "&client_id=" + configuration.DesktopClientId/* + $"&code_challenge={codeChallenge}&code_challenge_method=S256"*/);
+                state = PkceUtil.GenerateCodeVerifier();
+
+                var openURL = "https://accounts.google.com/o/oauth2/v2/auth?" + Uri.EscapeUriString("scope=openid email profile&response_type=code&redirect_uri=" + redirectUri + "&client_id=" + configuration.DesktopClientId/* + $"&code_challenge={codeChallenge}&code_challenge_method=S256"*/ + $"&state={state}");
                 Debug.Log($"[GoogleSignInImplPc] Opening URL: {openURL}");
                 Application.OpenURL(openURL);
             }
@@ -182,6 +185,14 @@ namespace Google.Impl
 
                         context.Response.StatusCode = 400;
                         context.Response.OutputStream.Write(Encoding.UTF8.GetBytes("Authentication failed. You can close this page and go back to app."));
+                        context.Response.Close();
+                        return;
+                    }
+
+                    if (queryDictionary.Get("state") is not string stateRequest || string.IsNullOrEmpty(stateRequest) || stateRequest != state)
+                    {
+                        context.Response.StatusCode = 400;
+                        context.Response.OutputStream.Write(Encoding.UTF8.GetBytes("Authentication failed. State mismatch. You can close this page and go back to app."));
                         context.Response.Close();
                         return;
                     }
