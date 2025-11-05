@@ -65,8 +65,8 @@ namespace Google.Impl
         public GoogleSignInImplPc(GoogleSignInConfiguration configuration)
         {
             this.configuration = configuration;
-            codeVerifier = PkceUtil.GenerateCodeVerifier();
-            codeChallenge = PkceUtil.ComputeCodeChallenge(codeVerifier);
+            //codeVerifier = PkceUtil.GenerateCodeVerifier();
+            //codeChallenge = PkceUtil.ComputeCodeChallenge(codeVerifier);
         }
 
         public void Disconnect()
@@ -144,7 +144,7 @@ namespace Google.Impl
 
             try
             {
-                var openURL = "https://accounts.google.com/o/oauth2/v2/auth?" + Uri.EscapeUriString("scope=openid email profile&response_type=code&redirect_uri=" + httpListener.Prefixes.FirstOrDefault() + "&client_id=" + configuration.DesktopClientId + $"&code_challenge={codeChallenge}&code_challenge_method=S256");
+                var openURL = "https://accounts.google.com/o/oauth2/v2/auth?" + Uri.EscapeUriString("scope=openid email profile&response_type=code&redirect_uri=" + httpListener.Prefixes.FirstOrDefault() + "&client_id=" + configuration.DesktopClientId/* + $"&code_challenge={codeChallenge}&code_challenge_method=S256"*/);
                 Debug.Log($"[GoogleSignInImplPc] Opening URL: {openURL}");
                 Application.OpenURL(openURL);
             }
