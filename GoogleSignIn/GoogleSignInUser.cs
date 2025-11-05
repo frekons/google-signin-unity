@@ -47,6 +47,12 @@ namespace Google {
             internal set;
         }
 
+        public string RedirectUri
+        {
+            get;
+            internal set;
+        }
+
         /// <summary> Display Name.</summary>
         public string DisplayName {
       get;

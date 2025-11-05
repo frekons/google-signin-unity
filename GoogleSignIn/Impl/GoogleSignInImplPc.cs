@@ -58,8 +58,6 @@ namespace Google.Impl
 
         public GoogleSignInUser Result { get; private set; }
 
-        public string OutCode { get; private set; }
-
         protected string codeVerifier, codeChallenge;
 
         public GoogleSignInImplPc(GoogleSignInConfiguration configuration)
@@ -142,9 +140,11 @@ namespace Google.Impl
                 return;
             }
 
+            var redirectUri = httpListener.Prefixes.FirstOrDefault();
+
             try
             {
-                var openURL = "https://accounts.google.com/o/oauth2/v2/auth?" + Uri.EscapeUriString("scope=openid email profile&response_type=code&redirect_uri=" + httpListener.Prefixes.FirstOrDefault() + "&client_id=" + configuration.DesktopClientId/* + $"&code_challenge={codeChallenge}&code_challenge_method=S256"*/);
+                var openURL = "https://accounts.google.com/o/oauth2/v2/auth?" + Uri.EscapeUriString("scope=openid email profile&response_type=code&redirect_uri=" + redirectUri + "&client_id=" + configuration.DesktopClientId/* + $"&code_challenge={codeChallenge}&code_challenge_method=S256"*/);
                 Debug.Log($"[GoogleSignInImplPc] Opening URL: {openURL}");
                 Application.OpenURL(openURL);
             }
@@ -225,8 +225,8 @@ namespace Google.Impl
                     //    user.ImageUrl = Uri.TryCreate((string)userInfo.GetValue("picture"), UriKind.Absolute, out var url) ? url : null;
                     //}
 
-                    OutCode = code;
-                    user.OutCode = OutCode;
+                    user.OutCode = code;
+                    user.RedirectUri = redirectUri;
                     Result = user;
                     Status = GoogleSignInStatusCode.SUCCESS;
                     Debug.Log($"[GoogleSignInImplPc] Sign-in successful for user: {user.DisplayName}");
