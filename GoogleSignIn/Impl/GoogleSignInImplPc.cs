@@ -189,13 +189,15 @@ namespace Google.Impl
                         return;
                     }
 
-                    if (queryDictionary.Get("state") is not string stateRequest || string.IsNullOrEmpty(stateRequest) || stateRequest != state)
+                    if (string.IsNullOrEmpty(state) || queryDictionary.Get("state") is not string stateRequest || string.IsNullOrEmpty(stateRequest) || stateRequest != state)
                     {
                         context.Response.StatusCode = 400;
                         context.Response.OutputStream.Write(Encoding.UTF8.GetBytes("Authentication failed. State mismatch. You can close this page and go back to app."));
                         context.Response.Close();
                         return;
                     }
+
+                    state = string.Empty;
 
                     context.Response.StatusCode = 200;
                     context.Response.OutputStream.Write(Encoding.UTF8.GetBytes("Authentication successful! You can close this page and go back to app."));
